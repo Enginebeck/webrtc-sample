@@ -116,17 +116,17 @@
     myConnection.onicecandidate = e => {
         e.candidate && _bindTextToParagraph('my_candidate', e.candidate);
     };
-    navigator.mediaDevices.getUserMedia({video: true})
-        .then(stream => {
-            _setVideoSrcObject('my_video', stream);
-            myConnection.addStream(stream);
-        });
 
     function grantMyOffer() {
-        myConnection.createOffer().then(offer => {
-            myConnection.setLocalDescription(offer);
-            _bindTextToParagraph('my_offer', offer);
-        });
+        navigator.mediaDevices.getUserMedia({video: true})
+            .then(stream => {
+                _setVideoSrcObject('my_video', stream);
+                myConnection.addStream(stream);
+                myConnection.createOffer().then(offer => {
+                    myConnection.setLocalDescription(offer);
+                    _bindTextToParagraph('my_offer', offer);
+                });
+            });
     }
 
     function setFriendOffer() {

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Video Call</title>
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        h3, label {
+            text-transform: capitalize;
+            display: block;
+        }
+
+        button, input {
+            border-radius: 5px;
+            padding: 6px 12px;
+            margin-top: 12px;
+            box-shadow: none;
+            border: 1px solid gray;
+            transition: all .5s;
+        }
+
+        input {
+            display: block;
+            width: 100%;
+        }
+
+        input:active, input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(153, 206, 245, 0.5);
+            border-color: transparent;
+        }
+
+        button {
+            cursor: pointer;
+            color: gray;
+            background-color: transparent;
+            border-color: rgb(111, 212, 111);
+        }
+
+        button:hover {
+            color: #FFF;
+            background-color: rgb(111, 212, 111);
+            box-shadow: 5px 5px 20px 0 #87cefa;
+        }
+
+        video {
+            width: 100%;
+        }
+
+        .video-container {
+            width: 50%;
+            float: left;
+            padding: 15px;
+        }
+
+        .text-container {
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+<h1>WEBRtc video call</h1>
+<div class="video-container">
+    <h2>me</h2>
+    <button onclick="grantMyOffer();">grant my offer</button>
+    <video id="my_video" autoplay></video>
+    <h3>my offer</h3>
+    <p id="my_offer"></p>
+    <h3>my answer</h3>
+    <p id="my_answer"></p>
+    <h3>my candidate</h3>
+    <p id="my_candidate"></p>
+</div>
+<div class="video-container">
+    <h2>friend</h2>
+    <video id="friend_video" autoplay></video>
+    <div>
+        <div class="text-container">
+            <label for="friend_offer">friend offer</label>
+            <input type="text" id="friend_offer">
+            <button onclick="setFriendOffer();">set friend offer</button>
+        </div>
+        <div class="text-container">
+            <label for="friend_answer">friend answer</label>
+            <input type="text" id="friend_answer">
+            <button onclick="setFriendAnswer();">set friend answer</button>
+        </div>
+        <div class="text-container">
+            <label for="friend_candidate">friend candidate</label>
+            <input type="text" id="friend_candidate">
+            <button onclick="setFriendCandidate();">set friend candidate</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let myConnection = new RTCPeerConnection({
+        iceServers: [{
+            url: 'stun:stun.services.mozilla.com'
+        }]
+    });
+    myConnection.onicecandidate = e => {
+        e.candidate && _bindTextToParagraph('my_candidate', e.candidate);
+    };
+    navigator.mediaDevices.getUserMedia({video: true})
+        .then(stream => {
+            _setVideoSrcObject('my_video', stream);
+            myConnection.addStream(stream);
+            myConnection.createOffer().then(offer => {
+                myConnection.setLocalDescription(offer);
+                _bindTextToParagraph('my_offer', offer);
+            });
+        });
+
+
+    function setFriendOffer() {
+        myConnection.onaddstream = e => {
+            _setVideoSrcObject('friend_video', e.stream);
+        };
+        let offer = _getInputValue('friend_offer');
+        myConnection.setRemoteDescription(offer);
+        myConnection.createAnswer().then(answer => {
+            myConnection.setLocalDescription(answer);
+            _bindTextToParagraph('my_answer', answer);
+        });
+    }
+
+    function setFriendAnswer() {
+        let answer = _getInputValue('friend_answer');
+        myConnection.setRemoteDescription(answer);
+    }
+
+    function setFriendCandidate() {
+        let friendCandidate = _getInputValue('friend_candidate');
+        myConnection.addIceCandidate(new RTCIceCandidate(friendCandidate));
+    }
+
+    /*
+     * start utils
+     */
+
+    function _getInputValue(id) {
+        let ele = document.getElementById(id);
+        return JSON.parse(ele.value);
+    }
+
+    function _bindTextToParagraph(id, object) {
+        let ele = document.getElementById(id);
+        ele.innerText = JSON.stringify(object);
+    }
+
+    function _setVideoSrcObject(id, stream) {
+        let ele = document.getElementById(id);
+        ele.srcObject = stream;
+    }
+</script>
+</body>
+
+</html>

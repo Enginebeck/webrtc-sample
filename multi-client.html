@@ -120,12 +120,14 @@
         .then(stream => {
             _setVideoSrcObject('my_video', stream);
             myConnection.addStream(stream);
-            myConnection.createOffer().then(offer => {
-                myConnection.setLocalDescription(offer);
-                _bindTextToParagraph('my_offer', offer);
-            });
         });
 
+    function grantMyOffer() {
+        myConnection.createOffer().then(offer => {
+            myConnection.setLocalDescription(offer);
+            _bindTextToParagraph('my_offer', offer);
+        });
+    }
 
     function setFriendOffer() {
         myConnection.onaddstream = e => {

@@ -18,44 +18,6 @@
             text-align: center;
         }
 
-        h3, label {
-            text-transform: capitalize;
-            display: block;
-        }
-
-        button, input {
-            border-radius: 5px;
-            padding: 6px 12px;
-            margin-top: 12px;
-            box-shadow: none;
-            border: 1px solid gray;
-            transition: all .5s;
-        }
-
-        input {
-            display: block;
-            width: 100%;
-        }
-
-        input:active, input:focus {
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(153, 206, 245, 0.5);
-            border-color: transparent;
-        }
-
-        button {
-            cursor: pointer;
-            color: gray;
-            background-color: transparent;
-            border-color: rgb(111, 212, 111);
-        }
-
-        button:hover {
-            color: #FFF;
-            background-color: rgb(111, 212, 111);
-            box-shadow: 5px 5px 20px 0 #87cefa;
-        }
-
         video {
             width: 100%;
         }
@@ -65,117 +27,82 @@
             float: left;
             padding: 15px;
         }
-
-        .text-container {
-            margin-top: 15px;
-        }
     </style>
 </head>
 
 <body>
-<h1>WEBRtc video call</h1>
-<div class="video-container">
-    <h2>me</h2>
-    <button onclick="grantMyOffer();">grant my offer</button>
-    <video id="my_video" autoplay></video>
-    <h3>my offer</h3>
-    <p id="my_offer"></p>
-    <h3>my answer</h3>
-    <p id="my_answer"></p>
-    <h3>my candidate</h3>
-    <p id="my_candidate"></p>
-</div>
-<div class="video-container">
-    <h2>friend</h2>
-    <video id="friend_video" autoplay></video>
-    <div>
-        <div class="text-container">
-            <label for="friend_offer">friend offer</label>
-            <input type="text" id="friend_offer">
-            <button onclick="setFriendOffer();">set friend offer</button>
-        </div>
-        <div class="text-container">
-            <label for="friend_answer">friend answer</label>
-            <input type="text" id="friend_answer">
-            <button onclick="setFriendAnswer();">set friend answer</button>
-        </div>
-        <div class="text-container">
-            <label for="friend_candidate">friend candidate</label>
-            <input type="text" id="friend_candidate">
-            <button onclick="setFriendCandidate();">set friend candidate</button>
-        </div>
+    <h1>WEBRtc single page example</h1>
+    <div class="video-container">
+        <h2>Local Video</h2>
+        <video id="my_video" autoplay></video>
     </div>
-</div>
+    <div class="video-container">
+        <h2>Remote Video</h2>
+        <video id="friend_video" autoplay></video>
+    </div>
 
-<script>
-    let myStream;
-//    navigator.mediaDevices.getUserMedia({video: true})
-//        .then(stream => {
-//            _setVideoSrcObject('my_video', stream);
-//            myStream = stream;
-//        });
+    <script>
+        let myStream;
 
-    let config = {
-        iceServers: [{
-            url: 'stun:stun.services.mozilla.com'
-        }]
-    };
-    let myConnection = new RTCPeerConnection(config);
-    let friendConnection = new RTCPeerConnection(config);
-    friendConnection.onicecandidate = e => {
-        if(e.candidate){
-            console.log('friend add candidate');
-            myConnection.addIceCandidate(new RTCIceCandidate(e.candidate));
-        }
-    };
-    myConnection.onicecandidate = e => {
-        if(e.candidate) {
-            console.log('me add candidate');
-            friendConnection.addIceCandidate(new RTCIceCandidate(e.candidate));
-        }
-    };
+        let config = {
+            iceServers: [{
+                url: 'stun:stun.services.mozilla.com'
+            }]
+        };
+        let myConnection = new RTCPeerConnection(config);
+        let friendConnection = new RTCPeerConnection(config);
+        friendConnection.onicecandidate = e => {
+            if (e.candidate) {
+                myConnection.addIceCandidate(new RTCIceCandidate(e.candidate));
+            }
+        };
+        myConnection.onicecandidate = e => {
+            if (e.candidate) {
+                friendConnection.addIceCandidate(new RTCIceCandidate(e.candidate));
+            }
+        };
 
-    myConnection.onaddstream = e => console.log(e);
-    friendConnection.onaddstream = e => _setVideoSrcObject('friend_video', e.stream);
+        myConnection.onaddstream = e => console.log(e);
+        friendConnection.onaddstream = e => _setVideoSrcObject('friend_video', e.stream);
 
 
-    navigator.mediaDevices.getUserMedia({video: true})
-        .then(stream => {
-            _setVideoSrcObject('my_video', stream);
-            friendConnection.addStream(stream);
-            myConnection.addStream(stream);
-            friendConnection.createOffer().then(offer => console.log('friend offer', offer));
-            myConnection.createOffer().then(offer => {
-                console.log('me create offer');
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                _setVideoSrcObject('my_video', stream);
+                friendConnection.addStream(stream);
+                myConnection.addStream(stream);
+                friendConnection.createOffer().then(offer => console.log('friend offer', offer));
+                return myConnection.createOffer();
+            })
+            .then(offer => {
                 myConnection.setLocalDescription(offer);
                 friendConnection.setRemoteDescription(offer);
-                friendConnection.createAnswer().then(answer => {
-                    console.log('friend create answer');
-                    friendConnection.setLocalDescription(answer);
-                    myConnection.setRemoteDescription(answer);
-                })
+                return friendConnection.createAnswer();
             })
-        });
+            .then(answer => {
+                friendConnection.setLocalDescription(answer);
+                myConnection.setRemoteDescription(answer);
+            });
 
-    /*
-     * start utils
-     */
+        /*
+         * start utils
+         */
 
-    function _getInputValue(id) {
-        let ele = document.getElementById(id);
-        return JSON.parse(ele.value);
-    }
+        function _getInputValue(id) {
+            let ele = document.getElementById(id);
+            return JSON.parse(ele.value);
+        }
 
-    function _bindTextToParagraph(id, object) {
-        let ele = document.getElementById(id);
-        ele.innerText = JSON.stringify(object);
-    }
+        function _bindTextToParagraph(id, object) {
+            let ele = document.getElementById(id);
+            ele.innerText = JSON.stringify(object);
+        }
 
-    function _setVideoSrcObject(id, stream) {
-        let ele = document.getElementById(id);
-        ele.srcObject = stream;
-    }
-</script>
+        function _setVideoSrcObject(id, stream) {
+            let ele = document.getElementById(id);
+            ele.srcObject = stream;
+        }
+    </script>
 </body>
 
 </html>
